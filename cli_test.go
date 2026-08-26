@@ -32,7 +32,7 @@ func TestPrintUsage(t *testing.T) {
 
 	var out bytes.Buffer
 	printUsage(&out)
-	for _, want := range []string{"prilog init", "prilog status", "prilog pr <id>"} {
+	for _, want := range []string{"prilog init", "prilog status", "prilog issue import", "prilog pr <id>"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("usage missing %q:\n%s", want, out.String())
 		}

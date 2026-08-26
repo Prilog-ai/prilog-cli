@@ -12,6 +12,7 @@
 - 🔐 Authenticates with Prilog through a browser-based login flow.
 - 📁 Links the current Git repository to a Prilog project.
 - 📡 Ingests logs, traces, and error files from local files or stdin.
+- 🐛 Imports an open issue from a public GitHub upstream for analysis against a connected fork.
 - 🧭 Lists detected errors by status, including pending fixes.
 - 🛠️ Starts Prilog analysis for an error and opens the dashboard review.
 - 🔎 Prints generated diffs directly in the terminal.
@@ -73,6 +74,12 @@ Ingest a local log, trace, or error file:
 prilog ingest ./logs.log
 ```
 
+Or import a public GitHub issue after connecting your fork of that repository:
+
+```sh
+prilog issue import https://github.com/medusajs/medusa/issues/16487
+```
+
 Review and act on detected errors:
 
 ```sh
@@ -92,6 +99,7 @@ prilog pr <error-id>
 | `prilog config` | Show local CLI configuration for the current repository. |
 | `prilog config path` | Print global and repository config file paths. |
 | `prilog ingest [file]` | Upload logs, traces, or errors from a file or stdin. |
+| `prilog issue import <url\|owner/repo#number>` | Import an open public GitHub issue into the active project. The connected code repository must be your fork of that upstream. |
 | `prilog list [filter]` | List recent logs and errors. Filters: `all`, `pending`, `processing`, `completed`, `failed`. |
 | `prilog fix <id>` | Queue Prilog analysis for an error. |
 | `prilog diff <id>` | Print the generated fix diff in the terminal. |
@@ -116,6 +124,19 @@ prilog fix 018f4a2e-7c2b-7b9d-ae4a-0ef5d4f9a101
 prilog diff 018f4a2e-7c2b-7b9d-ae4a-0ef5d4f9a101
 prilog pr 018f4a2e-7c2b-7b9d-ae4a-0ef5d4f9a101
 ```
+
+### Public upstream contribution
+
+Use one Prilog project per upstream repository. Fork the upstream into the GitHub account connected to Prilog, install the Prilog GitHub App on that fork, and select the upstream default branch during service setup. Then:
+
+```sh
+prilog issue import medusajs/medusa#16487
+prilog fix <error-id>
+prilog diff <error-id>
+prilog pr <error-id>
+```
+
+The importer rejects closed issues, pull request URLs, unrelated forks, and forks configured on the wrong base branch. `prilog pr` pushes the generated branch to the connected fork and opens a cross-fork pull request against the issue's upstream repository with the connected GitHub user as the PR author.
 
 ## 🔐 Security
 

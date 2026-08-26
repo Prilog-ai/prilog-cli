@@ -35,6 +35,9 @@ func (c *cli) do(ctx context.Context, method, path string, body io.Reader, conte
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-Prilog-Client", "cli")
+	if projectID := c.requestProjectID(); projectID != "" {
+		req.Header.Set("X-Prilog-Project-ID", projectID)
+	}
 	if body != nil && contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
@@ -66,6 +69,20 @@ func (c *cli) do(ctx context.Context, method, path string, body io.Reader, conte
 		return fmt.Errorf("decode response: %w", err)
 	}
 	return nil
+}
+
+func (c *cli) requestProjectID() string {
+	if c == nil {
+		return ""
+	}
+	if projectID := strings.TrimSpace(c.projectID); projectID != "" {
+		return projectID
+	}
+	repoCfg, err := loadRepoConfig(c.root)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(repoCfg.ProjectID)
 }
 
 func decodeAPIError(statusCode int, body []byte) error {

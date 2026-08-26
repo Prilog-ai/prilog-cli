@@ -176,6 +176,43 @@ func (c *cli) ingest(args []string) error {
 	return nil
 }
 
+func (c *cli) issue(args []string) error {
+	payload, err := githubIssueImportPayload(args)
+	if err != nil {
+		return err
+	}
+	if err := c.ensureAuth(); err != nil {
+		return err
+	}
+	repoCfg, err := loadRepoConfig(c.root)
+	if err != nil || repoCfg.ProjectID == "" {
+		return errors.New("repository is not initialized; run `prilog init` first")
+	}
+
+	var response githubIssueImportResponse
+	if err := c.doJSON(context.Background(), http.MethodPost, "/cli/github/issues/import", payload, true, &response); err != nil {
+		return err
+	}
+	c.printf("Imported %s#%d: %s\n", response.Repository, response.Number, response.Title)
+	c.println("Error ID:", response.ID)
+	c.println("Next: prilog fix", response.ID)
+	if response.ReviewURL != "" {
+		c.println("Review:", response.ReviewURL)
+	}
+	return nil
+}
+
+func githubIssueImportPayload(args []string) (map[string]string, error) {
+	if len(args) != 2 || args[0] != "import" {
+		return nil, errors.New("usage: prilog issue import <github-issue-url|owner/repo#number>")
+	}
+	issueRef := strings.TrimSpace(args[1])
+	if issueRef == "" {
+		return nil, errors.New("GitHub issue URL or owner/repo#number is required")
+	}
+	return map[string]string{"issue": issueRef}, nil
+}
+
 func readIngestPayload(args []string, stdin io.Reader) ([]byte, string, error) {
 	if len(args) == 0 {
 		body, err := io.ReadAll(stdin)

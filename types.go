@@ -77,6 +77,16 @@ type ingestResponse struct {
 	Signal   string `json:"signal"`
 }
 
+type githubIssueImportResponse struct {
+	ID         string `json:"id"`
+	Status     string `json:"status"`
+	Repository string `json:"repository"`
+	Number     int    `json:"number"`
+	Title      string `json:"title"`
+	IssueURL   string `json:"issue_url"`
+	ReviewURL  string `json:"review_url"`
+}
+
 type errorLogsResponse struct {
 	Errors     []errorLog `json:"errors"`
 	TotalCount int        `json:"total_count"`

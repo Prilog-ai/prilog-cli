@@ -68,3 +68,20 @@ func TestReadIngestPayloadFromStdin(t *testing.T) {
 		t.Fatalf("payload = %q filename=%q", string(body), filename)
 	}
 }
+
+func TestGitHubIssueImportPayload(t *testing.T) {
+	t.Parallel()
+
+	payload, err := githubIssueImportPayload([]string{"import", "https://github.com/medusajs/medusa/issues/16487"})
+	if err != nil {
+		t.Fatalf("githubIssueImportPayload returned error: %v", err)
+	}
+	if payload["issue"] != "https://github.com/medusajs/medusa/issues/16487" {
+		t.Fatalf("payload = %#v", payload)
+	}
+	for _, args := range [][]string{{}, {"list"}, {"import", ""}, {"import", "one", "two"}} {
+		if _, err := githubIssueImportPayload(args); err == nil {
+			t.Fatalf("githubIssueImportPayload(%v) unexpectedly succeeded", args)
+		}
+	}
+}

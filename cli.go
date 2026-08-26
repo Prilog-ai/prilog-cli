@@ -14,12 +14,13 @@ import (
 type browserOpener func(string) error
 
 type cli struct {
-	apiURL  string
-	root    string
-	client  *http.Client
-	stdin   io.Reader
-	stdout  io.Writer
-	openURL browserOpener
+	apiURL    string
+	root      string
+	projectID string
+	client    *http.Client
+	stdin     io.Reader
+	stdout    io.Writer
+	openURL   browserOpener
 }
 
 func run(args []string) error {
@@ -72,6 +73,9 @@ func newCLI(apiURL, root string, stdin io.Reader, stdout io.Writer, openURL brow
 func (c *cli) dispatch(args []string) error {
 	command := args[0]
 	rest := args[1:]
+	if handled, err := dispatchCLIExtension(c, command, rest); handled {
+		return err
+	}
 
 	switch command {
 	case "help", "-h", "--help":
@@ -108,6 +112,8 @@ func (c *cli) dispatch(args []string) error {
 			return errors.New("ingest accepts at most one file")
 		}
 		return c.ingest(rest)
+	case "issue":
+		return c.issue(rest)
 	case "list":
 		if len(rest) > 1 {
 			return errors.New("list accepts at most one filter")
@@ -157,11 +163,13 @@ func printUsage(w io.Writer) {
   prilog config
   prilog status
   prilog ingest [file]
+  prilog issue import <github-issue-url|owner/repo#number>
   prilog list [pending|processing|completed|failed]
   prilog fix <id>
   prilog diff <id>
   prilog pr <id>
   prilog version`)
+	printCLIExtensionUsage(w)
 }
 
 func printVersion(w io.Writer) {
