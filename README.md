@@ -100,7 +100,7 @@ prilog pr <error-id>
 | `prilog config path` | Print global and repository config file paths. |
 | `prilog ingest [file]` | Upload logs, traces, or errors from a file or stdin. |
 | `prilog issue import <url\|owner/repo#number>` | Import an open public GitHub issue into the active project. The connected code repository must be your fork of that upstream. |
-| `prilog list [filter]` | List recent logs and errors. Filters: `all`, `pending`, `processing`, `completed`, `failed`. |
+| `prilog list [filter]` | List recent logs and errors. Filters: `all`, `pending`, `processing`, `completed`, `failed`, `skipped`. Skipped items were stopped before analysis. |
 | `prilog fix <id>` | Queue Prilog analysis for an error. |
 | `prilog diff <id>` | Print the generated fix diff in the terminal. |
 | `prilog pr <id>` | Create a pull request for the generated fix and print the PR URL. |

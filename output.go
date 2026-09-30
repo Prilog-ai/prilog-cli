@@ -103,7 +103,7 @@ func statusCountsLabel(counts map[string]int) string {
 		counts = map[string]int{}
 	}
 
-	statuses := []string{"pending", "processing", "completed", "failed"}
+	statuses := []string{"pending", "processing", "completed", "failed", "skipped"}
 	parts := make([]string, 0, len(statuses))
 	for _, status := range statuses {
 		parts = append(parts, fmt.Sprintf("%s=%d", status, counts[status]))

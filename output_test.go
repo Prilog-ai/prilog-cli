@@ -11,7 +11,7 @@ func TestOutputHelpers(t *testing.T) {
 	if got := firstNonEmpty("", "  ", "api"); got != "api" {
 		t.Fatalf("firstNonEmpty = %q", got)
 	}
-	if got := statusCountsLabel(map[string]int{"pending": 2, "completed": 1}); got != "pending=2 processing=0 completed=1 failed=0" {
+	if got := statusCountsLabel(map[string]int{"pending": 2, "completed": 1}); got != "pending=2 processing=0 completed=1 failed=0 skipped=0" {
 		t.Fatalf("statusCountsLabel = %q", got)
 	}
 }

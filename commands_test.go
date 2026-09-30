@@ -18,6 +18,7 @@ func TestNormalizeListStatus(t *testing.T) {
 		{input: "processing", want: "processing"},
 		{input: "completed", want: "completed"},
 		{input: "failed", want: "failed"},
+		{input: "skipped", want: "skipped"},
 	}
 
 	for _, tc := range cases {

@@ -264,10 +264,10 @@ func normalizeListStatus(status string) (string, error) {
 	switch status {
 	case "", "all":
 		return "", nil
-	case "pending", "processing", "completed", "failed":
+	case "pending", "processing", "completed", "failed", "skipped":
 		return status, nil
 	default:
-		return "", fmt.Errorf("unsupported list filter %q. Supported filters: all, pending, processing, completed, failed", status)
+		return "", fmt.Errorf("unsupported list filter %q. Supported filters: all, pending, processing, completed, failed, skipped", status)
 	}
 }
 
