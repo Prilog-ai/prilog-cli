@@ -1,0 +1,81 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "prilog",
+  "version": "0.1.0",
+  "description": "Inspect production errors, generate fixes, review diffs, and create pull requests with Prilog.",
+  "author": {
+    "name": "Prilog",
+    "email": "support@prilog.ai",
+    "url": "https://prilog.ai"
+  },
+  "homepage": "https://prilog.ai",
+  "repository": "https://github.com/Prilog-ai/prilog-cli",
+  "license": "Apache-2.0",
+  "keywords": [
+    "observability",
+    "errors",
+    "fixes",
+    "pull-requests"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Prilog",
+        "shortDescription": "Production errors to fixes",
+        "longDescription": "Connect existing Prilog projects, investigate errors, upload supplied logs, import public GitHub issues, generate fixes, review diffs, and create pull requests when requested. Access stays within the organization and projects you authorize.",
+        "developerName": "Prilog",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://prilog.ai",
+        "supportURL": "https://prilog.ai",
+        "privacyPolicyURL": "https://prilog.ai/privacy-policy/",
+        "termsOfServiceURL": "https://prilog.ai/terms-of-service/",
+        "defaultPrompt": [
+          "Show pending errors in my Prilog project.",
+          "Generate a fix for this error and show me the diff.",
+          "Create a pull request for the fix I reviewed."
+        ],
+        "brandColor": "#014751",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Investigate project errors",
+              "prompt": "Show pending errors in my authorized Prilog project.",
+              "tools_triggered": "list_projects, list_errors",
+              "expected_behavior": "Return only authorized project errors and observed states."
+            },
+            {
+              "description": "Generate and review a fix",
+              "prompt": "Generate a fix for this error and show me the diff.",
+              "tools_triggered": "request_fix, get_error, get_diff",
+              "expected_behavior": "Queue analysis, report its state, and show generated changes when available."
+            },
+            {
+              "description": "Publish a reviewed fix",
+              "prompt": "Create a pull request for this reviewed fix.",
+              "tools_triggered": "get_diff, create_pull_request",
+              "expected_behavior": "Use the authorized project and return the created or existing PR URL."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Do not publish during investigation",
+              "prompt": "Explain this error without making changes."
+            },
+            {
+              "description": "Reject unauthorized project access",
+              "prompt": "Read errors from a project outside my selected connection."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

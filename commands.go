@@ -13,57 +13,6 @@ import (
 	"time"
 )
 
-func (c *cli) init() error {
-	repoPath, repoRemote := c.repoMetadata()
-	projectName, err := c.promptProjectName(repoName(repoPath, repoRemote))
-	if err != nil {
-		return err
-	}
-	if err := c.ensureAuth(); err != nil {
-		return err
-	}
-
-	payload := map[string]string{
-		"repo_path":   repoPath,
-		"repo_remote": repoRemote,
-		"repo_name":   projectName,
-	}
-	var response projectInitResponse
-	if err := c.doJSON(context.Background(), http.MethodPost, "/cli/projects/init", payload, true, &response); err != nil {
-		return err
-	}
-
-	repoCfg := repoConfig{
-		APIURL:               c.apiURL,
-		DashboardURL:         response.DashboardURL,
-		ProjectOnboardingURL: response.ProjectOnboardingURL,
-		OrganizationID:       response.OrganizationID,
-		ProjectID:            response.ProjectID,
-		RepoPath:             response.RepoPath,
-		RepoRemote:           response.RepoRemote,
-		IngestURL:            response.IngestURL,
-		OTELLogsURL:          response.OTELLogsURL,
-		OTELTracesURL:        response.OTELTracesURL,
-	}
-	if err := saveRepoConfig(c.root, repoCfg); err != nil {
-		return err
-	}
-
-	action := "linked"
-	if response.Created {
-		action = "created"
-	}
-	c.printf("Prilog project %s: %s\n", action, response.ProjectID)
-
-	openURL := firstNonEmpty(response.ProjectOnboardingAuthURL, response.ProjectOnboardingURL, response.DashboardURL)
-	if openURL != "" {
-		c.println("Opening project onboarding:")
-		c.println(firstNonEmpty(response.ProjectOnboardingURL, openURL))
-		_ = c.openURL(openURL)
-	}
-	return nil
-}
-
 func (c *cli) config(args []string) error {
 	if len(args) == 3 && args[0] == "set" && args[1] == "api-url" {
 		return c.setAPIURL(args[2])
@@ -108,11 +57,14 @@ func (c *cli) printConfig() error {
 
 	w := newTabWriter(c.stdout)
 	fmt.Fprintln(w, "KEY\tVALUE")
-	fmt.Fprintf(w, "api_url\t%s\n", firstNonEmpty(repoCfg.APIURL, global.APIURL, c.apiURL))
+	fmt.Fprintf(w, "api_url\t%s\n", c.apiURL)
 	fmt.Fprintf(w, "authenticated\t%t\n", global.AccessToken != "")
 	fmt.Fprintf(w, "token_expires_at\t%s\n", formatTime(global.ExpiresAt))
-	fmt.Fprintf(w, "organization_id\t%s\n", repoCfg.OrganizationID)
-	fmt.Fprintf(w, "project_id\t%s\n", repoCfg.ProjectID)
+	fmt.Fprintf(w, "organization_id\t%s\n", firstNonEmpty(global.OrganizationID, repoCfg.OrganizationID))
+	fmt.Fprintf(w, "project_id\t%s\n", c.requestProjectID())
+	if c.requestProjectID() == global.ProjectID {
+		fmt.Fprintf(w, "project_name\t%s\n", global.ProjectName)
+	}
 	fmt.Fprintf(w, "repo_path\t%s\n", repoCfg.RepoPath)
 	fmt.Fprintf(w, "dashboard_url\t%s\n", firstNonEmpty(repoCfg.DashboardURL, global.DashboardURL))
 	fmt.Fprintf(w, "project_onboarding_url\t%s\n", repoCfg.ProjectOnboardingURL)
@@ -129,6 +81,9 @@ func (c *cli) status() error {
 		return err
 	}
 
+	if c.jsonOutput {
+		return c.writeJSON(response)
+	}
 	w := newTabWriter(c.stdout)
 	fmt.Fprintln(w, "KEY\tVALUE")
 	fmt.Fprintf(w, "user\t%s\n", statusUserLabel(response.User))
@@ -147,9 +102,9 @@ func (c *cli) ingest(args []string) error {
 	if err := c.ensureAuth(); err != nil {
 		return err
 	}
-	repoCfg, err := loadRepoConfig(c.root)
-	if err != nil || repoCfg.ProjectID == "" {
-		return errors.New("repository is not initialized; run `prilog init` first")
+	repoCfg, _ := loadRepoConfig(c.root)
+	if c.requestProjectID() == "" {
+		return errors.New("no project selected; run `prilog use-project <project-name>` or `prilog add-repo` first")
 	}
 
 	body, filename, err := readIngestPayload(args, c.stdin)
@@ -159,7 +114,7 @@ func (c *cli) ingest(args []string) error {
 
 	values := url.Values{}
 	values.Set("filename", filepath.Base(filename))
-	if repoCfg.RepoPath != "" {
+	if repoCfg.RepoPath != "" && repoCfg.ProjectID == c.requestProjectID() {
 		values.Set("repo_path", repoCfg.RepoPath)
 	}
 
@@ -171,6 +126,9 @@ func (c *cli) ingest(args []string) error {
 	var response ingestResponse
 	if err := c.doRaw(context.Background(), http.MethodPost, path, body, true, &response); err != nil {
 		return err
+	}
+	if c.jsonOutput {
+		return c.writeJSON(response)
 	}
 	c.printf("Accepted %d %s record(s), skipped %d.\n", response.Accepted, response.Signal, response.Skipped)
 	return nil
@@ -184,14 +142,16 @@ func (c *cli) issue(args []string) error {
 	if err := c.ensureAuth(); err != nil {
 		return err
 	}
-	repoCfg, err := loadRepoConfig(c.root)
-	if err != nil || repoCfg.ProjectID == "" {
-		return errors.New("repository is not initialized; run `prilog init` first")
+	if c.requestProjectID() == "" {
+		return errors.New("no project selected; run `prilog use-project <project-name>` or `prilog add-repo` first")
 	}
 
 	var response githubIssueImportResponse
 	if err := c.doJSON(context.Background(), http.MethodPost, "/cli/github/issues/import", payload, true, &response); err != nil {
 		return err
+	}
+	if c.jsonOutput {
+		return c.writeJSON(response)
 	}
 	c.printf("Imported %s#%d: %s\n", response.Repository, response.Number, response.Title)
 	c.println("Error ID:", response.ID)
@@ -246,6 +206,9 @@ func (c *cli) list(status string) error {
 	if err := c.doJSON(context.Background(), http.MethodGet, "/errors?"+values.Encode(), nil, true, &response); err != nil {
 		return err
 	}
+	if c.jsonOutput {
+		return c.writeJSON(response)
+	}
 	if len(response.Errors) == 0 {
 		c.println("No logs found.")
 		return nil
@@ -281,6 +244,9 @@ func (c *cli) fix(id string) error {
 		return err
 	}
 
+	if c.jsonOutput {
+		return c.writeJSON(response)
+	}
 	c.println("Analysis queued:", response.ID)
 	if response.ReviewURL != "" {
 		c.println(response.ReviewURL)
@@ -296,6 +262,9 @@ func (c *cli) diff(id string) error {
 	var response diffResponse
 	if err := c.doJSON(context.Background(), http.MethodGet, "/cli/errors/"+id+"/diff", nil, true, &response); err != nil {
 		return err
+	}
+	if c.jsonOutput {
+		return c.writeJSON(response)
 	}
 	if strings.TrimSpace(response.Diff) == "" {
 		c.println("No diff available.")
@@ -319,6 +288,9 @@ func (c *cli) pr(id string) error {
 	prURL := extractPRURL(response)
 	if prURL == "" {
 		return errors.New("pull request was created but no PR URL was returned")
+	}
+	if c.jsonOutput {
+		return c.writeJSON(response)
 	}
 	c.println(prURL)
 	return nil

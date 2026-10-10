@@ -31,3 +31,17 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup plugin validator
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Package plugins
+        run: |
+          python -m pip install jsonschema==4.26.0
+          python scripts/package-plugin.py --check
+          python scripts/package-plugin.py
+      - name: Attach plugin packages
+        run: gh release upload "$GITHUB_REF_NAME" dist/plugin/*.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

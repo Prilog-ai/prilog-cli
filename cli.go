@@ -14,13 +14,14 @@ import (
 type browserOpener func(string) error
 
 type cli struct {
-	apiURL    string
-	root      string
-	projectID string
-	client    *http.Client
-	stdin     io.Reader
-	stdout    io.Writer
-	openURL   browserOpener
+	apiURL     string
+	root       string
+	projectID  string
+	jsonOutput bool
+	client     *http.Client
+	stdin      io.Reader
+	stdout     io.Writer
+	openURL    browserOpener
 }
 
 func run(args []string) error {
@@ -31,7 +32,13 @@ func runWithIO(args []string, stdin io.Reader, stdout io.Writer, openURL browser
 	fs := flag.NewFlagSet("prilog", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	apiURLFlag := fs.String("api-url", "", "Prilog API URL")
+	jsonFlag := fs.Bool("json", false, "Return machine-readable JSON without interactive authentication")
+	projectFlag := fs.String("project-id", "", "Explicit existing project UUID")
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			printUsage(stdout)
+			return nil
+		}
 		return err
 	}
 
@@ -47,6 +54,18 @@ func runWithIO(args []string, stdin io.Reader, stdout io.Writer, openURL browser
 	}
 
 	c := newCLI(configuredAPIURL(*apiURLFlag), root, stdin, stdout, openURL)
+	c.jsonOutput = *jsonFlag
+	c.projectID = strings.TrimSpace(*projectFlag)
+	if c.projectID != "" && !validProjectID(c.projectID) {
+		return errors.New("--project-id must be a UUID")
+	}
+	if c.jsonOutput {
+		switch args[0] {
+		case "status", "projects", "create-project", "use-project", "add-repo", "list", "ingest", "issue", "fix", "diff", "pr":
+		default:
+			return errors.New("--json supports status, projects, create-project, use-project, add-repo, list, ingest, issue import, fix, diff, and pr")
+		}
+	}
 	return c.dispatch(args)
 }
 
@@ -95,11 +114,25 @@ func (c *cli) dispatch(args []string) error {
 			return errors.New("login does not accept arguments")
 		}
 		return c.login(true)
-	case "init":
+	case "logout":
 		if len(rest) > 0 {
-			return errors.New("init does not accept arguments")
+			return errors.New("logout does not accept arguments")
 		}
-		return c.init()
+		return c.logout()
+	case "projects":
+		if len(rest) > 0 {
+			return errors.New("projects does not accept arguments")
+		}
+		return c.projects()
+	case "create-project":
+		return c.createProject(rest)
+	case "use-project":
+		return c.useProject(rest)
+	case "add-repo":
+		if len(rest) > 0 {
+			return errors.New("add-repo does not accept arguments")
+		}
+		return c.addRepo()
 	case "config":
 		return c.config(rest)
 	case "status":
@@ -158,8 +191,13 @@ func singleIDArg(command string, args []string) (string, error) {
 
 func printUsage(w io.Writer) {
 	fmt.Fprintln(w, `Usage:
+  prilog [--json] [--project-id <uuid>] <command> (flags precede the command)
   prilog login
-  prilog init
+  prilog logout
+  prilog projects
+  prilog create-project <project-name>
+  prilog use-project <project-name|id>
+  prilog add-repo
   prilog config
   prilog status
   prilog ingest [file]

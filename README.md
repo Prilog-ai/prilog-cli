@@ -59,7 +59,7 @@ prilog login
 Connect the current repository to a Prilog project:
 
 ```sh
-prilog init
+prilog add-repo
 ```
 
 Check the active account, organization, project, and fix totals:
@@ -94,7 +94,11 @@ prilog pr <error-id>
 | Command | Description |
 | --- | --- |
 | `prilog login` | Authenticate or switch Prilog accounts. |
-| `prilog init` | Link the current repository to a Prilog project and launch onboarding. |
+| `prilog logout` | Clear the saved CLI login while keeping endpoint and repository settings. |
+| `prilog projects` | List all projects in your current organization and mark the selected default. |
+| `prilog create-project <project-name>` | Create a project and select it as the CLI default. |
+| `prilog use-project <project-name\|id>` | Select an existing default project. |
+| `prilog add-repo` | Open Prilog, authorize GitHub, and continue Add service onboarding in the selected project. |
 | `prilog status` | Show the active user, organization, project, log totals, and fix totals. |
 | `prilog config` | Show local CLI configuration for the current repository. |
 | `prilog config path` | Print global and repository config file paths. |
@@ -109,9 +113,9 @@ prilog pr <error-id>
 ## 🧪 Example Workflow
 
 ```sh
-# Authenticate and connect this repository
+# Authenticate and connect the first GitHub repository
 prilog login
-prilog init
+prilog add-repo
 
 # Send telemetry from a local file
 prilog ingest ./production-errors.log
@@ -172,3 +176,51 @@ The CLI is intentionally stdlib-only. The source is split around user-facing com
 - Product and CLI issues: [Prilog-ai/prilog-cli issues](https://github.com/Prilog-ai/prilog-cli/issues)
 - Homebrew packaging issues: [Prilog-ai/homebrew-tap issues](https://github.com/Prilog-ai/homebrew-tap/issues)
 - Website: [prilog.ai](https://prilog.ai)
+
+## Agent plugin and automation
+
+The shared Prilog skill and hosted MCP configuration ship in this repository.
+The hosted connector operates on existing projects you authorize. Configure it
+in ChatGPT or Claude using `https://prilog.ai/api/mcp` and the Prilog account
+consent flow; revoke access in Prilog Settings → Account → Connected apps.
+
+For local automation, put `--json` and `--project-id <uuid>` before the command.
+`--json` supports status, projects, create-project, use-project, add-repo, list, ingest, issue import, fix, diff, and pr. It returns
+a structured command response without interactive authentication; run `prilog login` first.
+`PRILOG_CONFIG_DIR` can isolate login configuration in an absolute directory.
+
+Build and validate the release archives in a Python environment with
+`jsonschema==4.26.0` installed:
+
+```sh
+python scripts/package-plugin.py
+python scripts/package-plugin.py --check
+```
+
+The generator uses root `plugin.json`, `mcp.json`, `skills/`, and `assets/` as
+shared sources. It maintains `.claude-plugin/plugin.json` and `.mcp.json` for
+Claude repository installation and writes both ZIPs under `dist/plugin/`.
+Only plugin resources and the license enter the archives. The plugin has its
+own version in `plugin.json`; update it when releasing skill or package changes.
+See `PLUGIN_PUBLISHING.md` for deployment, review fixtures, and store submission.
+
+## Project selection and repository setup
+
+`prilog create-project "Payments"` creates and selects a project. Run
+`prilog projects` to see your organization's projects and `prilog use-project
+"Payments"` to switch the CLI default. Selection persists across directories;
+`--project-id <uuid>` overrides it for one command. Names match exactly without
+case sensitivity. If a name is duplicated, select its ID from `prilog projects`.
+An interactive `create-project` with no name prompts for one; automation must
+supply the name.
+
+`prilog add-repo` uses the selected project and opens a browser handoff to Prilog,
+which redirects to GitHub authorization and returns to the existing Add service
+repository wizard. Run it again to add another repository/service in the same
+project. The browser must sign in as the CLI's Prilog account. If no project is
+selected, the first Add service flow uses the account's current/default project.
+`--json add-repo` returns the handoff URL without opening a browser.
+
+The `init` command has been removed. Project/repository setup now uses
+`create-project`, `use-project`, and `add-repo`. The new API and web changes must
+be deployed before using `add-repo` against a hosted Prilog instance.

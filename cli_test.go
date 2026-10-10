@@ -32,10 +32,13 @@ func TestPrintUsage(t *testing.T) {
 
 	var out bytes.Buffer
 	printUsage(&out)
-	for _, want := range []string{"prilog init", "prilog status", "prilog issue import", "prilog pr <id>"} {
+	for _, want := range []string{"prilog projects", "prilog create-project", "prilog use-project", "prilog add-repo", "prilog status", "prilog issue import", "prilog pr <id>"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("usage missing %q:\n%s", want, out.String())
 		}
+	}
+	if strings.Contains(out.String(), "prilog init") {
+		t.Fatal("removed init command remains in help")
 	}
 	if strings.Contains(out.String(), "api-url") {
 		t.Fatalf("usage exposed internal API override:\n%s", out.String())
@@ -54,13 +57,18 @@ func TestPrintVersion(t *testing.T) {
 
 func TestRunWithIOHelp(t *testing.T) {
 	t.Parallel()
-
-	var out bytes.Buffer
-	if err := runWithIO([]string{"help"}, nil, &out, nil); err != nil {
-		t.Fatalf("runWithIO help returned error: %v", err)
-	}
-	if !strings.Contains(out.String(), "Usage:") {
-		t.Fatalf("help output missing usage: %q", out.String())
+	for _, command := range []string{"help", "--help", "-h"} {
+		t.Run(command, func(t *testing.T) {
+			var out bytes.Buffer
+			if err := runWithIO([]string{command}, nil, &out, nil); err != nil {
+				t.Fatalf("help returned error: %v", err)
+			}
+			for _, expected := range []string{"Usage:", "prilog status", "prilog list", "prilog fix", "prilog pr"} {
+				if !strings.Contains(out.String(), expected) {
+					t.Fatalf("help output missing %q: %s", expected, out.String())
+				}
+			}
+		})
 	}
 }
 

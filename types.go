@@ -3,14 +3,17 @@ package main
 import "time"
 
 type globalConfig struct {
-	APIURL       string    `json:"api_url"`
-	DashboardURL string    `json:"dashboard_url,omitempty"`
-	AccessToken  string    `json:"access_token,omitempty"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	TokenType    string    `json:"token_type,omitempty"`
-	ExpiresAt    time.Time `json:"expires_at,omitempty"`
-	UserID       string    `json:"user_id,omitempty"`
-	CLISessionID string    `json:"cli_session_id,omitempty"`
+	APIURL         string    `json:"api_url"`
+	DashboardURL   string    `json:"dashboard_url,omitempty"`
+	AccessToken    string    `json:"access_token,omitempty"`
+	RefreshToken   string    `json:"refresh_token,omitempty"`
+	TokenType      string    `json:"token_type,omitempty"`
+	ExpiresAt      time.Time `json:"expires_at,omitempty"`
+	UserID         string    `json:"user_id,omitempty"`
+	CLISessionID   string    `json:"cli_session_id,omitempty"`
+	OrganizationID string    `json:"organization_id,omitempty"`
+	ProjectID      string    `json:"project_id,omitempty"`
+	ProjectName    string    `json:"project_name,omitempty"`
 }
 
 type repoConfig struct {
@@ -53,21 +56,6 @@ type authRefreshResponse struct {
 	OrganizationID string `json:"organization_id"`
 	UserID         string `json:"user_id"`
 	ProjectID      string `json:"project_id"`
-}
-
-type projectInitResponse struct {
-	Status                   string `json:"status"`
-	ProjectID                string `json:"project_id"`
-	OrganizationID           string `json:"organization_id"`
-	RepoPath                 string `json:"repo_path"`
-	RepoRemote               string `json:"repo_remote"`
-	DashboardURL             string `json:"dashboard_url"`
-	ProjectOnboardingURL     string `json:"project_onboarding_url"`
-	ProjectOnboardingAuthURL string `json:"project_onboarding_auth_url"`
-	IngestURL                string `json:"ingest_url"`
-	OTELLogsURL              string `json:"otel_logs_url"`
-	OTELTracesURL            string `json:"otel_traces_url"`
-	Created                  bool   `json:"created"`
 }
 
 type ingestResponse struct {
@@ -145,4 +133,19 @@ type statusCounts struct {
 	Logs     int            `json:"logs"`
 	Fixes    int            `json:"fixes"`
 	ByStatus map[string]int `json:"by_status"`
+}
+
+type projectResponse struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	OrganizationID string `json:"organization_id,omitempty"`
+}
+type projectsResponse struct {
+	Projects        []projectResponse `json:"projects"`
+	TotalCount      int               `json:"total_count"`
+	ActiveProjectID string            `json:"active_project_id,omitempty"`
+}
+type addRepoResponse struct {
+	Project    projectResponse `json:"project"`
+	BrowserURL string          `json:"browser_url"`
 }

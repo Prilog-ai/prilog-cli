@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,6 +29,12 @@ func configuredAPIURL(flagValue string) string {
 }
 
 func globalConfigPath() (string, error) {
+	if directory := os.Getenv("PRILOG_CONFIG_DIR"); directory != "" {
+		if !filepath.IsAbs(directory) {
+			return "", fmt.Errorf("PRILOG_CONFIG_DIR must be absolute")
+		}
+		return filepath.Join(directory, configFile), nil
+	}
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err

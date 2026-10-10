@@ -78,6 +78,10 @@ func (c *cli) requestProjectID() string {
 	if projectID := strings.TrimSpace(c.projectID); projectID != "" {
 		return projectID
 	}
+	global, err := loadGlobalConfig()
+	if err == nil && global.ProjectID != "" && trimConfiguredURL(global.APIURL) == c.apiURL {
+		return global.ProjectID
+	}
 	repoCfg, err := loadRepoConfig(c.root)
 	if err != nil {
 		return ""

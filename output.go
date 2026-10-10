@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -110,3 +112,9 @@ func statusCountsLabel(counts map[string]int) string {
 	}
 	return strings.Join(parts, " ")
 }
+
+var projectIDPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
+func validProjectID(value string) bool { return projectIDPattern.MatchString(value) }
+
+func (c *cli) writeJSON(value any) error { return json.NewEncoder(c.stdout).Encode(value) }

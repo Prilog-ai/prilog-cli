@@ -4,10 +4,14 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"time"
 )
 
 func (c *cli) login(force bool) error {
+	if c.jsonOutput {
+		return errors.New("authentication required; run `prilog login` before using --json")
+	}
 	global, _ := loadGlobalConfig()
 	if !force && global.AccessToken != "" && time.Until(global.ExpiresAt) > time.Minute {
 		return nil
@@ -52,6 +56,11 @@ func (c *cli) login(force bool) error {
 			continue
 		}
 
+		if global.UserID != poll.UserID || global.OrganizationID != poll.OrganizationID || trimConfiguredURL(global.APIURL) != c.apiURL {
+			global.ProjectID = ""
+			global.ProjectName = ""
+		}
+		global.OrganizationID = poll.OrganizationID
 		global.APIURL = c.apiURL
 		global.AccessToken = poll.AccessToken
 		global.RefreshToken = poll.RefreshToken
@@ -72,9 +81,6 @@ func (c *cli) login(force bool) error {
 
 func (c *cli) ensureAuth() error {
 	global, _ := loadGlobalConfig()
-	if global.APIURL != "" {
-		c.apiURL = trimConfiguredURL(global.APIURL)
-	}
 	if global.AccessToken == "" {
 		return c.login(false)
 	}
@@ -97,4 +103,30 @@ func (c *cli) ensureAuth() error {
 		global.UserID = response.UserID
 	}
 	return saveGlobalConfig(global)
+}
+
+// logout removes the locally saved login while retaining endpoint preferences.
+func (c *cli) logout() error {
+	global, err := loadGlobalConfig()
+	if errors.Is(err, os.ErrNotExist) {
+		c.println("Already logged out of Prilog.")
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	global.AccessToken = ""
+	global.RefreshToken = ""
+	global.TokenType = ""
+	global.ExpiresAt = time.Time{}
+	global.UserID = ""
+	global.CLISessionID = ""
+	global.OrganizationID = ""
+	global.ProjectID = ""
+	global.ProjectName = ""
+	if err := saveGlobalConfig(global); err != nil {
+		return err
+	}
+	c.println("Logged out of Prilog.")
+	return nil
 }
