@@ -191,10 +191,13 @@ def main():
             except ValueError: pass
         final = '';tools=[]
         for event in events:
+            if not isinstance(event,dict):continue
             if product=='claude':
                 if event.get('type')=='result':final=event.get('result','')
-                for item in event.get('message',{}).get('content',[]):
-                    if item.get('type')=='tool_use':tools.append({'name':item['name'],'input':item['input']})
+                message = event.get('message')
+                content = message.get('content',[]) if isinstance(message,dict) else []
+                for item in content if isinstance(content,list) else []:
+                    if isinstance(item,dict) and item.get('type')=='tool_use':tools.append({'name':item['name'],'input':item['input']})
             elif event.get('type')=='item.completed':
                 item=event.get('item',{})
                 if item.get('type')=='agent_message':final=item.get('text','')
