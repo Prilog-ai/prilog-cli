@@ -48,6 +48,14 @@ func runWithIO(args []string, stdin io.Reader, stdout io.Writer, openURL browser
 		return nil
 	}
 
+	// Subcommand help must never become a project name or an error ID.
+	for _, arg := range args[1:] {
+		if arg == "--help" || arg == "-h" {
+			printUsage(stdout)
+			return nil
+		}
+	}
+
 	root, err := repoRoot()
 	if err != nil {
 		return err

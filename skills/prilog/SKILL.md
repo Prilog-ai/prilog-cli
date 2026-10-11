@@ -5,7 +5,7 @@ description: Operate Prilog to list, create, and select projects, connect GitHub
 
 # Prilog
 
-Use the `prilog` CLI for every Prilog operation when command execution is available. Start with `prilog --help` to discover the installed commands and flags. Read [CLI workflows](references/cli.md) for account/project discovery and asynchronous analysis. Get Prilog state from command output; let the CLI resolve its own configuration and authentication.
+Use the `prilog` CLI for every Prilog operation when command execution is available. In each new session, the first Prilog command must be `prilog --help`, before any status, project, setup, or workflow command. Use its output to discover the installed commands and flags. For automated inspection, use global `--json` before the command: plain authenticated commands may start browser login when signed out. On an authentication error, stop and report `prilog login` unless the user requested sign-in. Read [CLI workflows](references/cli.md) for account/project discovery and asynchronous analysis. Get Prilog state from command output; let the CLI resolve its own configuration and authentication.
 
 Do not read, search, or enumerate product source files, configuration files, credential stores, or environment files to discover commands, API URLs, authentication, account details, or project IDs. Use `prilog status` and, when configuration information is needed, `prilog config`. A missing CLI, login, project, or failed command is a reason to report that result and the appropriate CLI setup step, not to investigate product internals.
 

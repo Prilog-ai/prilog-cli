@@ -2,6 +2,8 @@
 
 Run `prilog --help` first. The installed CLI's help is the source of truth for available commands and flags. Execute Prilog operations through that binary and parse its output as needed. Do not discover its commands or state by reading configuration, inspecting implementation files, or searching the repository.
 
+Use `--json` for automated inspection. Plain `status`, `projects`, or `list` can initiate browser login when signed out; do not use them to check authentication. If JSON mode reports authentication required, stop and report `prilog login` unless sign-in was requested.
+
 For account, active project, available projects, and pending errors, use:
 
 ```sh
@@ -11,7 +13,7 @@ prilog --json projects
 prilog --json --project-id <project-id-from-status> list pending
 ```
 
-Use `--json` and `--project-id` only when the installed CLI supports them. With JSON output, obtain the project ID from `project.id` in the status JSON. If the user already supplied a project ID, pass it to `status` too. If no project override is supported, retain the CLI's existing selection. Older CLI versions can use human-readable commands; do not parse tables as JSON. Use `prilog version` when an unsupported command or flag needs diagnosis.
+Use `--json` and `--project-id` only when the installed CLI supports them. With JSON output, obtain the project ID from `project.id` in the status JSON. If the user already supplied a project ID, pass it to `status` too. If no project override is supported, retain the CLI's existing selection. If an older CLI lacks noninteractive JSON mode, report its version and the upgrade requirement before authenticated automation. Do not fall back to plain authenticated commands, which may start browser login. Use `prilog version` when an unsupported command or flag needs diagnosis.
 
 Let the CLI read its own saved account, project, endpoint, and credentials. Use `prilog config` only when configuration information is needed. Never open the underlying files, inspect token stores, or search the product for those values.
 

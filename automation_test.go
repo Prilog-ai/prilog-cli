@@ -54,3 +54,28 @@ func TestAutomationRejectsInvalidProject(t *testing.T) {
 		t.Fatalf("invalid project accepted: %v", err)
 	}
 }
+
+func TestSubcommandHelpNeverAuthenticatesOrMutates(t *testing.T) {
+	t.Setenv("PRILOG_CONFIG_DIR", t.TempDir())
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(http.StatusInternalServerError) }))
+	defer server.Close()
+	if err := saveGlobalConfig(globalConfig{APIURL: server.URL, AccessToken: "test-token", ExpiresAt: time.Now().Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	for _, command := range []string{"create-project", "use-project", "fix", "diff", "pr", "login", "logout", "add-repo", "status", "projects", "ingest", "issue"} {
+		for _, help := range []string{"--help", "-h"} {
+			var output bytes.Buffer
+			opened := false
+			if err := runWithIO([]string{"--json", command, help}, nil, &output, func(string) error { opened = true; return nil }); err != nil {
+				t.Fatalf("%s %s: %v", command, help, err)
+			}
+			if !strings.Contains(output.String(), "Usage:") || opened {
+				t.Fatalf("%s %s did not return safe help", command, help)
+			}
+		}
+	}
+	if calls != 0 {
+		t.Fatalf("help made %d network requests", calls)
+	}
+}

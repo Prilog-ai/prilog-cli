@@ -60,6 +60,18 @@ Also test issue import with an open public issue on the upstream of the connecte
 fork. Existing repository and competing-PR rules still apply. No credentials,
 customer logs, or live private repository data belong in review fixtures.
 
+## Repeatable local agent sessions
+
+Run `python3 scripts/test-agent-sessions.py` from the CLI repository with authenticated
+Claude Code and Codex CLIs available. Each case uses a new temporary session, the real
+Prilog binary, synthetic credentials, a loopback fixture API, and recorded browser
+handoffs. It leaves your saved Prilog login and production data unchanged.
+
+Use `--prilog-binary /absolute/path/to/prilog` to test a build and `--output /private/tmp/prilog-agent-tests`
+to choose the report directory. `results.json` includes command traces, requests,
+observed responses, and failures. These cases test agent/CLI behavior; they do not
+replace real OAuth, GitHub onboarding, analysis, or PR publication on a review workspace.
+
 ## Manually test the local plugin
 
 From the monorepo root, build the new CLI and load the Claude plugin directory:
