@@ -5,6 +5,9 @@
 /prilog
 /dist/
 /coverage.out
+/scripts
+/review-fixtures
+service_token_test.go
 
 *.test
 *.tmp

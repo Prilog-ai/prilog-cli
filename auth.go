@@ -5,10 +5,14 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
 func (c *cli) login(force bool) error {
+	if strings.TrimSpace(os.Getenv("PRILOG_ACCESS_TOKEN")) != "" {
+		return nil
+	}
 	if c.jsonOutput {
 		return errors.New("authentication required; run `prilog login` before using --json")
 	}
@@ -80,6 +84,9 @@ func (c *cli) login(force bool) error {
 }
 
 func (c *cli) ensureAuth() error {
+	if strings.TrimSpace(os.Getenv("PRILOG_ACCESS_TOKEN")) != "" {
+		return nil
+	}
 	global, _ := loadGlobalConfig()
 	if global.AccessToken == "" {
 		return c.login(false)

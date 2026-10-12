@@ -56,6 +56,13 @@ Authenticate once:
 prilog login
 ```
 
+For a private automated client with an operator-issued service account token,
+set `PRILOG_ACCESS_TOKEN` in the CLI process environment. This skips browser
+login and refresh without replacing your saved login. The environment token
+does not inherit the saved login's default project; use `--project-id` to select
+one explicitly. Service tokens retain the user's workspace permissions and can
+be revoked by an operator. Keep them out of browser apps and distributed clients.
+
 Connect the current repository to a Prilog project:
 
 ```sh

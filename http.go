@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -43,10 +44,14 @@ func (c *cli) do(ctx context.Context, method, path string, body io.Reader, conte
 	}
 	if auth {
 		global, _ := loadGlobalConfig()
-		if global.AccessToken == "" {
+		token := strings.TrimSpace(os.Getenv("PRILOG_ACCESS_TOKEN"))
+		if token == "" {
+			token = global.AccessToken
+		}
+		if token == "" {
 			return errors.New("not authenticated; run `prilog login`")
 		}
-		req.Header.Set("Authorization", "Bearer "+global.AccessToken)
+		req.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	resp, err := c.client.Do(req)
@@ -79,7 +84,7 @@ func (c *cli) requestProjectID() string {
 		return projectID
 	}
 	global, err := loadGlobalConfig()
-	if err == nil && global.ProjectID != "" && trimConfiguredURL(global.APIURL) == c.apiURL {
+	if err == nil && strings.TrimSpace(os.Getenv("PRILOG_ACCESS_TOKEN")) == "" && global.ProjectID != "" && trimConfiguredURL(global.APIURL) == c.apiURL {
 		return global.ProjectID
 	}
 	repoCfg, err := loadRepoConfig(c.root)
