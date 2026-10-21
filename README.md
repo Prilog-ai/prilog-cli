@@ -209,6 +209,10 @@ shared sources. It maintains `.claude-plugin/plugin.json` and `.mcp.json` for
 Claude repository installation and writes both ZIPs under `dist/plugin/`.
 Only plugin resources and the license enter the archives. The plugin has its
 own version in `plugin.json`; update it when releasing skill or package changes.
+For Claude directory submission, use repository `Prilog-ai/prilog-cli`, branch
+`main`, and subfolder `plugins/prilog`. This generated folder contains the Claude
+package and a plugin README, without the CLI source or installer. The validator
+checks that it matches the shared sources and contains no unexpected files.
 See `PLUGIN_PUBLISHING.md` for deployment, review fixtures, and store submission.
 
 ## Project selection and repository setup

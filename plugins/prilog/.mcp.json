@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "prilog": {
+      "type": "http",
+      "url": "https://prilog.ai/api/mcp"
+    }
+  }
+}

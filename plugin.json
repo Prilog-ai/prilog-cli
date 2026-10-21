@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "prilog",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Inspect production errors, generate fixes, review diffs, and create pull requests with Prilog.",
   "author": {
     "name": "Prilog",

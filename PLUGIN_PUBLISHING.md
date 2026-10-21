@@ -110,6 +110,12 @@ release workflow attaches them to the release after its binary release step.
 Shared content is maintained once. The OpenAI ZIP contains root `plugin.json`
 and `mcp.json`. The Claude ZIP contains `.claude-plugin/plugin.json` and
 `.mcp.json`; these generated files also make the CLI GitHub repository installable.
+The same Claude package is generated into `plugins/prilog/` for directory
+submission. It contains only the plugin resources, README, and license; no CLI
+source, installer, release tooling, or test fixtures. `--check` rejects stale
+content, symlinks, and unexpected files in this directory. Claude listing fields,
+including the privacy policy URL, are generated from the shared metadata.
+Edit `scripts/plugin-readme.md` to change the packaged README.
 Do not submit app-reference files or lifecycle hooks. Update `plugin.json`'s
 version when changing skills, metadata, or package resources, then regenerate.
 
@@ -123,9 +129,14 @@ scan findings, supply private review account access, and submit for review.
 
 Claude portal: https://claude.ai/directory/manage/new
 
-Claude: use the directory submission portal and submit the GitHub repository
-containing the generated Claude plugin and shared skill. Configure the same
-remote endpoint, supply the review workspace, and resolve validation findings.
+Claude: use the directory submission portal with repository
+`https://github.com/Prilog-ai/prilog-cli`, branch `main`, and plugin subfolder
+`plugins/prilog`. You can also paste
+`https://github.com/Prilog-ai/prilog-cli/tree/main/plugins/prilog` into the
+repository field. Validate this subfolder rather than the CLI repository root.
+Configure the same remote endpoint, supply the review workspace, and resolve
+validation findings. Isolation removes unrelated CLI implementation from the
+submission; it does not guarantee that directory policy holds will be cleared.
 If either portal requires listing screenshots, capture the deployed review flow;
 do not submit fabricated screenshots or claim unrun reviewer scenarios passed.
 

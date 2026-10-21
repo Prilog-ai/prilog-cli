@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prilog"
+  short_description: "Investigate errors and turn fixes into pull requests"
+  default_prompt: "Use $prilog and its CLI to show my account, active project, and pending errors."

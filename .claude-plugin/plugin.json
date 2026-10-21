@@ -1,6 +1,6 @@
 {
   "name": "prilog",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Inspect production errors, generate fixes, review diffs, and create pull requests with Prilog.",
   "author": {
     "name": "Prilog",
@@ -15,5 +15,10 @@
     "errors",
     "fixes",
     "pull-requests"
-  ]
+  ],
+  "icon": "./assets/logo.png",
+  "documentationUrl": "https://github.com/Prilog-ai/prilog-cli#agent-plugin-and-automation",
+  "supportUrl": "https://prilog.ai",
+  "privacyPolicyUrl": "https://prilog.ai/privacy-policy/",
+  "termsOfServiceUrl": "https://prilog.ai/terms-of-service/"
 }

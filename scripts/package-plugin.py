@@ -7,18 +7,44 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+CLAUDE_ROOT = ROOT / 'plugins/prilog'
 
 def load(path):
     return json.loads(path.read_text())
 
 def claude_files(manifest, mcp):
+    interface = manifest['extensions']['com.openai']['interface']
+    metadata = {key: manifest[key] for key in ('name', 'version', 'description', 'author', 'homepage', 'repository', 'license', 'keywords')}
+    metadata.update({
+        'icon': interface['logo'],
+        'documentationUrl': 'https://github.com/Prilog-ai/prilog-cli#agent-plugin-and-automation',
+        'supportUrl': interface['supportURL'],
+        'privacyPolicyUrl': interface['privacyPolicyURL'],
+        'termsOfServiceUrl': interface['termsOfServiceURL'],
+    })
     return {
-        '.claude-plugin/plugin.json': {key: manifest[key] for key in ('name', 'version', 'description', 'author', 'homepage', 'repository', 'license', 'keywords')},
+        '.claude-plugin/plugin.json': metadata,
         '.mcp.json': {'mcpServers': {name: {'type': 'http', 'url': config['url']} for name, config in mcp['mcpServers'].items()}},
     }
 
 def encode(value):
     return (json.dumps(value, indent=2) + '\n').encode()
+
+def shared_files():
+    files = {'LICENSE': (ROOT / 'LICENSE').read_bytes()}
+    for directory in ('skills', 'assets'):
+        for path in sorted((ROOT / directory).rglob('*')):
+            if path.is_file():
+                files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
+    return files
+
+def check_claude_directory(files):
+    paths = list(CLAUDE_ROOT.rglob('*'))
+    assert not any(path.is_symlink() for path in paths), 'Claude submission must not contain symlinks'
+    actual = {path.relative_to(CLAUDE_ROOT).as_posix() for path in paths if path.is_file()}
+    assert actual == set(files), f'Regenerate plugins/prilog; missing: {set(files) - actual}, unexpected: {actual - set(files)}'
+    for path, content in files.items():
+        assert (CLAUDE_ROOT / path).read_bytes() == content, f'Regenerate plugins/prilog/{path}'
 
 def validate(manifest, mcp):
     from jsonschema import Draft202012Validator
@@ -44,30 +70,35 @@ def validate(manifest, mcp):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--check', action='store_true', help='Validate sources and generated Claude files without writing')
+    parser.add_argument('--check', action='store_true', help='Validate sources, generated Claude files, and the submission directory without writing')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist/plugin')
     args = parser.parse_args()
     manifest, mcp = load(ROOT / 'plugin.json'), load(ROOT / 'mcp.json')
     validate(manifest, mcp)
     generated = claude_files(manifest, mcp)
+    files = shared_files()
+    claude_package = files | {path: encode(value) for path, value in generated.items()}
+    claude_package['README.md'] = (ROOT / 'scripts/plugin-readme.md').read_bytes()
     if args.check:
         for path, content in generated.items():
             assert (ROOT / path).read_bytes() == encode(content), f'Regenerate {path}'
-        print('Prilog plugin schemas, skill resources, and Claude manifests validated')
+        check_claude_directory(claude_package)
+        print('Prilog plugin schemas, skill resources, Claude manifests, and submission directory validated')
         return
     for path, content in generated.items():
         target = ROOT / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(encode(content))
-    files = {'LICENSE': (ROOT / 'LICENSE').read_bytes()}
-    for directory in ('skills', 'assets'):
-        for path in sorted((ROOT / directory).rglob('*')):
-            if path.is_file(): files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
+    for path, content in claude_package.items():
+        target = CLAUDE_ROOT / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    check_claude_directory(claude_package)
     args.output.mkdir(parents=True, exist_ok=True)
-    for platform, extras in [('openai', {'plugin.json': encode(manifest), 'mcp.json': encode(mcp)}), ('claude', {path: encode(value) for path, value in generated.items()})]:
+    for platform, package in [('openai', files | {'plugin.json': encode(manifest), 'mcp.json': encode(mcp)}), ('claude', claude_package)]:
         target = args.output / f'prilog-{platform}-{manifest["version"]}.zip'
         with zipfile.ZipFile(target, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
-            for path, data in sorted((files | extras).items()):
+            for path, data in sorted(package.items()):
                 info = zipfile.ZipInfo(path, date_time=(2026, 1, 1, 0, 0, 0))
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o100644 << 16
