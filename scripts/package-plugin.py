@@ -3,6 +3,7 @@
 import argparse
 import json
 import re
+import struct
 import zipfile
 from pathlib import Path
 
@@ -16,7 +17,8 @@ def claude_files(manifest, mcp):
     interface = manifest['extensions']['com.openai']['interface']
     metadata = {key: manifest[key] for key in ('name', 'version', 'description', 'author', 'homepage', 'repository', 'license', 'keywords')}
     metadata.update({
-        'icon': interface['logo'],
+        # Claude's listing uses the wordmark; OpenAI requires a square icon.
+        'icon': './assets/logo.png',
         'documentationUrl': 'https://github.com/Prilog-ai/prilog-cli#agent-plugin-and-automation',
         'supportUrl': interface['supportURL'],
         'privacyPolicyUrl': interface['privacyPolicyURL'],
@@ -34,9 +36,39 @@ def shared_files():
     files = {'LICENSE': (ROOT / 'LICENSE').read_bytes()}
     for directory in ('skills', 'assets'):
         for path in sorted((ROOT / directory).rglob('*')):
-            if path.is_file():
+            if path.is_file() and path.name != '.DS_Store':
                 files[path.relative_to(ROOT).as_posix()] = path.read_bytes()
     return files
+
+def openai_files(manifest, mcp, files):
+    interface = manifest['extensions']['com.openai']['interface']
+    assets = set()
+    for field in ('composerIcon', 'composerIconDark', 'logo', 'logoDark'):
+        if field in interface:
+            value = interface[field]
+            assert value.startswith('./'), f'{field} must be plugin-relative'
+            path = ROOT / value
+            path.resolve().relative_to(ROOT)
+            data = path.read_bytes()
+            assert data[:8] == b'\x89PNG\r\n\x1a\n' and data[12:16] == b'IHDR', f'{field} must reference a PNG icon'
+            width, height = struct.unpack('>II', data[16:24])
+            assert width == height and 48 <= width <= 4096, f'{field} must be square, 48 to 4096 pixels'
+            assert len(data) <= 5 * 1024 * 1024, f'{field} exceeds 5 MiB'
+            assets.add(path.relative_to(ROOT).as_posix())
+    for value in interface.get('screenshots', []):
+        assert value.startswith('./'), 'Screenshot paths must be plugin-relative'
+        path = ROOT / value
+        path.resolve().relative_to(ROOT)
+        assert path.is_file(), value
+        assets.add(path.relative_to(ROOT).as_posix())
+    package = {path: data for path, data in files.items() if not path.startswith('assets/') or path in assets}
+    for path in assets:
+        package[path] = (ROOT / path).read_bytes()
+    review = manifest['extensions']['com.openai']['review']['test_cases']
+    assert len(review['positive']) == 5 and len(review['negative']) == 3, 'OpenAI MCP review requires five positive and three negative cases'
+    for case in review['positive']:
+        assert all(case.get(field) for field in ('description', 'prompt', 'tools_triggered', 'expected_behavior')), 'Incomplete positive review case'
+    return package | {'plugin.json': encode(manifest), 'mcp.json': encode(mcp)}
 
 def check_claude_directory(files):
     paths = list(CLAUDE_ROOT.rglob('*'))
@@ -72,11 +104,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='Validate sources, generated Claude files, and the submission directory without writing')
     parser.add_argument('--output', type=Path, default=ROOT / 'dist/plugin')
+    parser.add_argument('--platform', choices=('all', 'openai', 'claude'), default='all', help='Build or check one platform without regenerating the other submission')
     args = parser.parse_args()
     manifest, mcp = load(ROOT / 'plugin.json'), load(ROOT / 'mcp.json')
     validate(manifest, mcp)
     generated = claude_files(manifest, mcp)
     files = shared_files()
+    packages = {}
+    if args.platform in ('all', 'openai'):
+        packages['openai'] = openai_files(manifest, mcp, files)
+    if args.platform == 'openai':
+        if args.check:
+            print('OpenAI plugin schemas, square icons, skill resources, and review cases validated')
+        else:
+            write_packages(args.output, manifest['version'], packages)
+        return
     claude_package = files | {path: encode(value) for path, value in generated.items()}
     claude_package['README.md'] = (ROOT / 'scripts/plugin-readme.md').read_bytes()
     if args.check:
@@ -94,9 +136,13 @@ def main():
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
     check_claude_directory(claude_package)
-    args.output.mkdir(parents=True, exist_ok=True)
-    for platform, package in [('openai', files | {'plugin.json': encode(manifest), 'mcp.json': encode(mcp)}), ('claude', claude_package)]:
-        target = args.output / f'prilog-{platform}-{manifest["version"]}.zip'
+    packages['claude'] = claude_package
+    write_packages(args.output, manifest['version'], packages)
+
+def write_packages(output, version, packages):
+    output.mkdir(parents=True, exist_ok=True)
+    for platform, package in packages.items():
+        target = output / f'prilog-{platform}-{version}.zip'
         with zipfile.ZipFile(target, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
             for path, data in sorted(package.items()):
                 info = zipfile.ZipInfo(path, date_time=(2026, 1, 1, 0, 0, 0))

@@ -127,6 +127,51 @@ OpenAI: verify the publishing identity, upload the OpenAI ZIP with its MCP
 configuration, complete domain verification and OAuth connection, resolve tool
 scan findings, supply private review account access, and submit for review.
 
+### OpenAI package and remaining review materials
+
+ChatGPT and Codex share one OpenAI directory submission. Build the portable
+OpenAI ZIP without regenerating a Claude package that is already under review:
+
+```sh
+python scripts/package-plugin.py --platform openai --check
+python scripts/package-plugin.py --platform openai
+```
+
+Upload `dist/plugin/prilog-openai-0.1.3.zip` at
+https://platform.openai.com/plugins with the hosted MCP server included. This
+archive uses the existing 512 × 512 icon for both required icon fields, includes
+only referenced branding assets, and excludes Finder `.DS_Store` metadata.
+The package contains five positive and three negative review scenarios and
+release notes. These are review specifications, not evidence that the scenarios
+have been run on the review account.
+
+Complete the following in the OpenAI dashboard before submitting:
+
+- Verify the publisher identity and serve the dashboard's exact domain challenge
+  at its specified `/.well-known/openai-apps-challenge` URL. A challenge completed
+  for Anthropic does not verify the OpenAI submission.
+- Connect `https://prilog.ai/api/mcp` using OAuth discovery, authorize the review
+  project, and resolve the metadata, skill, and tool scan findings. The identity
+  server advertises dynamic client registration and PKCE S256; do not include
+  client secrets or bearer tokens in the archive.
+- Supply a dedicated demo account with sample data through private Review
+  details. OpenAI requires access without email/SMS codes, MFA approval, magic
+  links, or private-network setup. Prilog's current identity configuration has
+  password login disabled, so the existing email-OTP flow alone does not satisfy
+  that reviewer-access requirement. Resolve a supported reviewer login before
+  claiming the submission is complete.
+- Run all eight manifest scenarios with the demo account, including project
+  isolation and read-only behavior. The package declares the supplied Codex demo
+  recording at https://youtu.be/KGjzB8FUwhs; confirm that reviewers can play it
+  without signing in. Its presence does not prove the hosted MCP scenarios passed.
+  Reviewer credentials stay outside the package.
+
+The `--platform openai` checks validate the OpenAI sources and archive inputs.
+They do not validate the existing Claude submission directory or prove that
+live OAuth, analysis, or publication workflows passed review.
+
+### Claude submission
+
 Claude portal: https://claude.ai/directory/manage/new
 
 Claude: use the directory submission portal with repository

@@ -214,6 +214,9 @@ For Claude directory submission, use repository `Prilog-ai/prilog-cli`, branch
 package and a plugin README, without the CLI source or installer. The validator
 checks that it matches the shared sources and contains no unexpected files.
 See `PLUGIN_PUBLISHING.md` for deployment, review fixtures, and store submission.
+Use `python scripts/package-plugin.py --platform openai` to build only the
+ChatGPT/Codex upload ZIP without regenerating the Claude submission folder;
+add `--check` to validate its schema, square icons, resources, and review cases.
 
 ## Project selection and repository setup
 
