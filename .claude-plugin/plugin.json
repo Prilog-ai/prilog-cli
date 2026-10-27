@@ -1,6 +1,6 @@
 {
   "name": "prilog",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Inspect production errors, generate fixes, review diffs, and create pull requests with Prilog.",
   "author": {
     "name": "Prilog",
