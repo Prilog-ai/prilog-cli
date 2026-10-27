@@ -41,6 +41,6 @@ prilog --json --project-id <project-uuid> pr <error-uuid>
 
 `--json` returns a structured command response and fails instead of prompting for authentication. Refreshing an existing login remains supported.
 
-`fix` queues asynchronous analysis using the project's configured automation. Check progress with `list processing`, `list completed`, and `diff`, at most six checks spaced about ten seconds apart when waiting is supported. Otherwise report the pending state. Review `diff` before requested `pr` publication. After an interrupted mutation, inspect state through the CLI before retrying; the CLI has no MCP idempotency-key contract.
+`fix` queues asynchronous analysis for the requested error, including when the project's automatic analysis is paused. It does not enable automatic analysis or process the rest of the backlog. Billing and usage limits still apply. Check progress with `list processing`, `list completed`, and `diff`, at most six checks spaced about ten seconds apart when waiting is supported. Otherwise report the pending state. Review `diff` before requested `pr` publication. After an interrupted mutation, inspect state through the CLI before retrying; the CLI has no MCP idempotency-key contract.
 
 Honor the CLI's configured API endpoint and any explicit endpoint the user supplied. Do not infer an endpoint from product files or switch a local test to production on failure.
